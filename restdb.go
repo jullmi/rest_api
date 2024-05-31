@@ -178,3 +178,182 @@ func ListAllUsers() []User {
 	return all
 
 }
+
+// FindUserUsername is for returning a user record defined by a username
+func FindUserUsername(username string) User {
+	db := ConnectPostgres()
+
+	if db == nil {
+		log.Println("Cannot connect to PostgreSQL!")
+		db.Close()
+		return User{}
+	}
+
+	defer db.Close()
+
+	rows, err := db.Query("SELECT * FROM users where Username = $1 \n", username)
+
+	if err != nil {
+		log.Println("FindUserUsername Query:", err)
+		db.Close()
+		return User{}
+	}
+
+	defer rows.Close()
+
+	u := User{}
+	var c1 int
+	var c2, c3 string
+	var c4 int64
+	var c5, c6 int
+
+	for rows.Next() {
+		err = rows.Scan(&c1, &c2, &c3, &c4, &c5, &c6)
+		if err != nil {
+			log.Println(err)
+			return User{}
+		}
+
+		u = User{c1, c2, c3, c4, c5, c6}
+		log.Println("Found user:", u)
+	}
+
+	return u
+
+}
+
+// ReturnLoggedUsers is for returning all logged in users
+func ReturnLoggedUsers() []User {
+	db := ConnectPostgres()
+
+	if db == nil {
+		log.Println("Cannot connect to PostgreSQL!")
+		db.Close()
+		return []User{}
+
+	}
+
+	defer db.Close()
+
+	rows, err := db.Query("SELECT * from users WHERE Active=1 \n")
+	if err != nil {
+		log.Println(err)
+		db.Close()
+		return []User{}
+	}
+
+	defer rows.Close()
+
+	all := []User{}
+	var c1 int
+	var c2, c3 string
+	var c4 int64
+	var c5, c6 int
+
+	for rows.Next() {
+		err = rows.Scan(&c1, &c2, &c3, &c4, &c5, &c6)
+
+		if err != nil {
+			log.Println(err)
+			db.Close()
+			return []User{}
+		}
+
+		temp := User{c1, c2, c3, c4, c5, c6}
+		log.Println("temp:", all)
+		all = append(all, temp)
+	}
+
+	return all
+
+}
+
+// IsUserAdmin determines whether a user is
+// an administrator or not
+
+func IsUserAdmin(u User) bool {
+	db := ConnectPostgres()
+
+	if db == nil {
+		log.Println("Cannot connect to PostgreSQL!")
+		db.Close()
+		return false
+	}
+
+	db.Close()
+
+	rows, err := db.Query("SELECT * FROM users WHERE Username=$1 \n", u.Username)
+
+	if err != nil {
+		log.Println(err)
+		db.Close()
+		return false
+	}
+
+	temp := User{}
+	var c1 int
+	var c2, c3 string
+	var c4 int64
+	var c5, c6 int
+
+	// If there exist multiple users with the same username,
+	// we will get the FIRST ONE only.
+	for rows.Next() {
+		err = rows.Scan(&c1, &c2, &c3, &c4, &c5, &c6)
+		if err != nil {
+			log.Println(err)
+			db.Close()
+			return false
+		}
+
+		temp = User{c1, c2, c3, c4, c5, c6}
+
+	}
+
+	defer rows.Close()
+
+	if u.Username == temp.Username && u.Password == temp.Password && u.Admin == 1 {
+		return true
+	}
+
+	return false
+
+}
+
+// UpdateUser allows you to update user name
+func UpdateUser(u User) bool {
+
+	db := ConnectPostgres()
+
+	if db == nil {
+		fmt.Println("Cannot connect to PostgreSQL!")
+		db.Close()
+		return false
+	}
+
+	defer db.Close()
+
+	stmt, err := db.Prepare("UPDATE users SET Username=$1, Password=$2, Admin=$3, Active=$4 WHERE id=$5")
+
+	if err != nil {
+		log.Println("Adduser:", err)
+		return false
+	}
+
+	res, err := stmt.Exec(u.Username, u.Password, u.Admin, u.Active, u.ID)
+
+	if err != nil {
+		log.Println("UpdateUser failed:", err)
+		return false
+	}
+
+	affect, err := res.RowsAffected()
+
+	if err != nil {
+		log.Println("RowsAffected() failed:", err)
+		return false
+	}
+
+	log.Println("Affected:", affect)
+	return true
+}
