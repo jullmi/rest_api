@@ -2,7 +2,9 @@ package restdb
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 )
 
@@ -20,6 +22,20 @@ type User struct {
 	Admin     int
 	Active    int
 }
+
+
+// FromJSON decodes a serialized JSON record - User{}
+func (p *User) FromJSON(r io.Reader) error {
+	e := json.NewDecoder(r)
+	return e.Decode(r)
+}
+
+// ToJSON encodes a User JSON record
+func (p *User) ToJSON (r io.Reader) error {
+	e := json.NewEncoder(r)
+	return e.Encode(r)
+}
+
 
 func ConnectPostgres() *sql.DB {
 	conn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", Hostname, Port, Username, Password, Database)
