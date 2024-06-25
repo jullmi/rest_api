@@ -31,7 +31,7 @@ func (p *User) FromJSON(r io.Reader) error {
 }
 
 // ToJSON encodes a User JSON record
-func (p *User) ToJSON (r io.Reader) error {
+func (p *User) ToJSON (r io.Writer) error {
 	e := json.NewEncoder(r)
 	return e.Encode(r)
 }
